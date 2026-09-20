@@ -1,0 +1,19 @@
+const stages={
+ touch:{title:'촉각으로<br>나의 위치 찾기.',label:'SENSING THE SPACE',description:'손끝으로 코트의 라인을 확인하고, 진동을 통해 접촉을 느낍니다. 공간 속에서 내 위치와 방향을 파악하는 첫 번째 단계입니다.',points:['코트의 기준선과 목표 위치 탐색','손의 접촉과 워치 햅틱 피드백 연결'],tag:'HAPTIC FEEDBACK',image:'assets/touch.webp',alt:'안대를 착용하고 골볼 코트의 촉각선을 확인하는 체험 모습',caption:'골볼의 촉각적 단서를 이해하는 실제 체험',number:'01 / TOUCH'},
+ sound:{title:'소리를 듣고,<br>방향과 움직임 읽기.',label:'LISTENING TO THE SPACE',description:'주변에서 들리는 소리의 방향을 찾고, 움직이는 공의 소리로 투구 유형을 구분합니다. 정적·동적 소리를 통해 공간의 정보를 탐색합니다.',points:['정적 소리: 주변 8방향의 위치 판단','동적 소리: 굴러감과 바운스 유형 구분'],tag:'SPATIAL AUDIO',image:'assets/sound.webp',alt:'Unity에서 구현한 골볼 공간음향 테스트 화면',caption:'공의 움직임과 공간음향을 연결한 Unity 개발 화면',number:'02 / SOUND'},
+ movement:{title:'손의 움직임이,<br>공과의 인터랙션으로.',label:'HANDS IN THE SPACE',description:'추적된 손의 움직임으로 공에 다가가 잡고, 원하는 위치로 옮긴 뒤 놓습니다. 가상 공간의 공과 직접 상호작용하는 경험을 표현합니다.',points:['양손 관절 추적과 공 잡기','손의 움직임에 따라 공 이동 · 놓기'],tag:'HAND TRACKING · GRAB & RELEASE',image:'assets/motion.webp',alt:'실제 골볼장에서 공을 들고 투구를 준비하는 선수',caption:'실제 골볼장에서 촬영한 투구 동작',number:'03 / MOVEMENT'}
+};
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function setStage(tab){const data=stages[tab.dataset.stage];document.querySelector('.stage-visual').dataset.currentStage=tab.dataset.stage;tabs.forEach(t=>{const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1});document.getElementById('experience-panel').setAttribute('aria-labelledby',tab.id);document.getElementById('stage-title').innerHTML=data.title;for(const key of ['label','description','tag','caption','number'])document.getElementById('stage-'+key).textContent=data[key];const img=document.getElementById('stage-image');img.src=data.image;img.alt=data.alt;document.getElementById('stage-points').replaceChildren(...data.points.map(text=>{const li=document.createElement('li');li.textContent=text;return li}));}
+for(const [i,tab] of tabs.entries()){tab.addEventListener('click',()=>setStage(tab));tab.addEventListener('keydown',e=>{let next;if(e.key==='ArrowRight')next=(i+1)%tabs.length;else if(e.key==='ArrowLeft')next=(i+tabs.length-1)%tabs.length;else if(e.key==='Home')next=0;else if(e.key==='End')next=tabs.length-1;else return;e.preventDefault();tabs[next].focus();setStage(tabs[next]);});}
+const views={court:{src:'assets/court.webp',alt:'이천 골볼장의 코트와 골대',caption:'FIELD CAPTURE / 이천 골볼장'},cloud:{src:'assets/cloud.webp',alt:'촬영 데이터를 바탕으로 생성한 경기장 포인트 클라우드',caption:'POINT CLOUD / 촬영 데이터 기반 공간 복원'},hybrid:{src:'assets/hybrid.webp',alt:'가우시안 스플래팅으로 재구성한 경기장과 코트',caption:'RECONSTRUCTION / 가상 공간 재구성'}};
+for(const button of document.querySelectorAll('[data-view]'))button.addEventListener('click',()=>{const data=views[button.dataset.view];document.querySelectorAll('[data-view]').forEach(b=>{const active=b===button;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});const img=document.getElementById('court-image');img.src=data.src;img.alt=data.alt;document.getElementById('court-caption').textContent=data.caption;});
+
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+const motionVideo=document.getElementById('throw-motion');
+let motionStarted=false;
+if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting){motionVideo.pause();}else if(!motionStarted&&!reducedMotion.matches){motionStarted=true;motionVideo.play().catch(()=>{});}}},{threshold:.35});observer.observe(motionVideo);}
+reducedMotion.addEventListener('change',e=>{if(e.matches)motionVideo.pause();});
+
+const samplePlayers=[...document.querySelectorAll('.throw-audio audio')];
+for(const player of samplePlayers)player.addEventListener('play',()=>{for(const other of document.querySelectorAll('audio,video'))if(other!==player)other.pause();});
