@@ -1,0 +1,126 @@
+/* One visual language: a real court view, plain answer buttons, and text results. */
+:root{--bg:#080f18;--card:#101c29;--line:#2a4154;--cyan:#71dfed;--text:#f2f7fb;--muted:#a6bdca}
+body{background:var(--bg);color:var(--text)}
+.sidebar{display:none!important}
+header{max-width:1120px;margin:auto;padding:24px 22px 8px;border:0;background:transparent}
+header .tag,.steps{display:none}
+.shell{max-width:1120px;margin:auto;padding:10px 22px 56px}
+.top{align-items:flex-start;margin-bottom:18px}
+.top h1{font-size:clamp(1.9rem,4vw,2.7rem);margin-bottom:5px}
+.top .muted{font-size:.92rem}
+.card{background:var(--card);border-color:var(--line);border-radius:12px;padding:20px}
+.viewport{border:1px solid #31556c;border-radius:12px;background:#09151d;box-shadow:none}
+.viewport canvas{position:absolute;inset:0}
+.view-label{z-index:2;background:#07131dd9;color:#d9e9ee}
+.scan-note{font-size:.78rem}
+.status{font-size:.86rem}
+button,input,select{border-color:#456277;background:#16293b;border-radius:8px}
+button:hover:not(:disabled){background:#1e3d55}
+button[aria-pressed=true],.library-positions button[aria-pressed=true]{background:#11618a;border-color:var(--cyan);color:white}
+button.primary{background:var(--cyan);border-color:var(--cyan);color:#07232c}
+
+/* Setup: show the actual court first, settings and sound practice below. */
+#setup .grid{display:flex;flex-direction:column;gap:18px}
+#setup .grid>div:first-child,#setup .grid>.card{width:100%;min-width:0}
+#setup-scene{height:min(69svh,700px);min-height:390px;position:relative}
+#setup-scene .view-controls{position:absolute;left:12px;bottom:12px;z-index:3;display:flex;gap:7px;margin:0;padding:6px;border-radius:9px;background:#07131cdb;backdrop-filter:blur(8px)}
+#setup-scene .view-controls button{min-height:40px;padding:6px 10px;font-size:.8rem}
+#setup .statline,#setup .scan-note,#setup .note{display:none}
+#setup .grid>.card>.fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+#setup .grid>.card>.fields .wide{grid-column:auto}
+.fields label{padding:9px 10px;border:1px solid #294252;border-radius:9px;background:#0b1924;font-size:.84rem}
+.familiar-card h2{margin-bottom:4px}
+.familiar-card>.muted{margin-bottom:8px;font-size:.88rem}
+.familiar-controls{display:flex;gap:10px;flex-wrap:wrap;margin:13px 0}
+.familiar-controls label{flex:1 1 210px}
+.familiar-positions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.familiar-positions.court{grid-template-columns:repeat(3,minmax(0,1fr))}
+.familiar-positions.trajectory{grid-template-columns:repeat(5,minmax(0,1fr))}
+.familiar-positions button{min-height:52px;padding:7px 5px;font-size:.84rem}
+.physics-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.physics-fields input{display:block;width:100%;min-height:30px;padding:0}
+.physics-fields output{float:right;color:var(--cyan)}
+.local-notice{padding:12px 14px;border:1px solid #c39156;border-radius:8px;background:#332719;color:#ffe3b7}
+
+/* Test: the scanned court is the canvas; the response controls are its only overlay. */
+#test .test-layout{display:block}
+#test .scene-panel{width:100%;position:relative}
+#test .scene-panel>.scan-note{display:none}
+#test-scene{width:100%;height:min(78svh,810px);min-height:570px;position:relative;overflow:hidden}
+#test-scene .immersive-tools{position:absolute;top:12px;right:12px;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;max-width:calc(100% - 24px);margin:0;padding:5px;border:1px solid #4b7184;border-radius:9px;background:#081924dc;backdrop-filter:blur(8px)}
+#test-scene .immersive-tools .tag{display:none}
+#test-scene .immersive-tools button{min-height:36px;padding:5px 9px;font-size:.78rem}
+#test-scene .cut-stages{display:flex;gap:5px;margin-right:auto}
+#test-scene .cut-stages button{min-height:32px}
+#test-scene .cut-stages button[aria-current=true]{background:#11618a;border-color:var(--cyan)}
+#test-scene #progress{position:absolute;top:0;left:0;z-index:6;width:100%;height:5px;margin:0}
+#test-scene .response-panel{position:absolute;right:14px;bottom:14px;z-index:4;width:min(350px,calc(100% - 28px));max-height:calc(100% - 82px);overflow:auto;margin:0;padding:16px;background:#081924eb;backdrop-filter:blur(12px);border-color:#537589;box-shadow:0 10px 30px #0008}
+#test-scene .response-panel .eyebrow{margin-bottom:4px}
+#test-scene .response-panel .ready{padding:4px 0}
+#test-scene .response-panel .ready h2{font-size:1.15rem}
+#test-scene .response-panel .ready p{font-size:.84rem;margin-bottom:8px}
+#test-scene .response-panel fieldset{margin:8px 0}
+#test-scene .response-panel legend{font-size:.91rem;margin-bottom:8px}
+#test-scene .response-panel .status{min-height:20px;margin:7px 0}
+.choice-grid,.choice-grid.ring,.choice-grid.court,.choice-grid.trajectory{display:grid;position:static;width:100%;height:auto;aspect-ratio:auto;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0 12px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;overflow:visible}
+.choice-grid:before,.choice-grid:after{display:none!important}
+.choice-grid.court{grid-template-columns:repeat(3,minmax(0,1fr))}
+.choice-grid.trajectory{grid-template-columns:repeat(5,minmax(0,1fr))}
+.choice-grid button,.choice-grid.ring button,.choice-grid.court button,.choice-grid.trajectory button{display:flex;position:static;left:auto;top:auto;transform:none;align-items:center;justify-content:center;flex-direction:column;gap:2px;width:100%;height:auto;min-height:48px;padding:6px 3px;border:1px solid #4f7186;border-radius:8px;background:#123047;color:#f3f9fb;box-shadow:none;font-size:.83rem;line-height:1.15}
+.choice-grid button[aria-pressed=true],.choice-grid.ring button[aria-pressed=true],.choice-grid.court button[aria-pressed=true],.choice-grid.trajectory button[aria-pressed=true]{background:#1370a0;border-color:var(--cyan);color:white;box-shadow:0 0 0 2px #71dfed55}
+.choice-grid button small{font-size:.62rem;color:#b9d1da;font-weight:400}
+.choice-grid.drag-enabled{touch-action:none;cursor:crosshair;outline:2px solid #71dfed88;outline-offset:3px}
+.choice-grid.ring{display:block;position:relative;width:min(100%,224px);aspect-ratio:1;margin:6px auto 10px;border:1px solid #537a94;border-radius:50%;background:repeating-conic-gradient(from -15deg,#79a7c733 0deg 1deg,transparent 1deg 30deg),radial-gradient(circle,#173448 0 22%,#102739 23% 69%,#0a1d2d 70% 100%)}
+.choice-grid.ring:before{content:"";display:block!important;position:absolute;inset:13%;border:1px dashed #7ab6d277;border-radius:50%;pointer-events:none}
+.choice-grid.ring .ring-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:58px;height:58px;border:1px solid var(--cyan);border-radius:50%;background:#0b3149;color:#e9f9fc;font-size:.76rem;font-weight:700;pointer-events:none;box-shadow:0 0 16px #42cdeb44}
+.choice-grid.ring button{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;min-height:44px;padding:2px;border:1px solid #79dcea;border-radius:50%;background:#155077;color:#f5fbfd;font-size:.78rem;box-shadow:0 0 10px #1fbce855}
+.choice-grid.ring button[aria-pressed=true]{background:#70dced;color:#092535;box-shadow:0 0 0 3px #b0f3f577,0 0 17px #4ce2f2}
+#test-scene .response-panel:has(.choice-grid.ring) #cue-note{display:none}
+#test-scene .response-panel:has(.choice-grid.ring) #response legend{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#test-scene .response-panel:has(.choice-grid.ring) fieldset{margin:5px 0}
+#test-scene .response-panel:has(.choice-grid.ring) #selection{margin:3px 0;min-height:18px}
+.technique-answers{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}
+.technique-prompt{width:100%;margin:0;font-size:.84rem;color:var(--muted)}
+.technique-answers button{flex:1;min-height:45px}
+.technique-answers button[aria-pressed=true]{background:#1370a0;border-color:var(--cyan)}
+body.immersive-mode #test-scene,#test-scene:fullscreen{position:fixed;inset:0;z-index:100;width:100vw;height:100svh;min-height:0;border:0;border-radius:0}
+body.immersive-mode #test-scene .response-panel,#test-scene:fullscreen .response-panel{max-height:calc(100% - 82px)}
+
+/* Audio review has filters and players, without a second court illustration. */
+#library .top{margin-bottom:14px}
+#library .row{max-width:700px}
+#library-map{margin:16px 0 20px}
+#library-map h2{font-size:1rem;margin-bottom:9px}
+.library-positions{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
+.library-positions button{min-height:44px;padding:5px;font-size:.82rem}
+.library-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.clip{background:#101e2b;border-color:var(--line);padding:14px}
+.clip h3{font-size:.96rem;margin-bottom:3px}
+.clip small{color:var(--muted)}
+.clip audio{margin:9px 0 5px}
+.clip img{display:none}
+
+/* Results: numbers, two comparable charts, then the ordered trial table. */
+#report{display:block}
+#report .top{margin-bottom:18px}
+#report .metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px}
+#report .metric{background:#112436;border:1px solid var(--line);border-radius:10px;padding:17px}
+#report .metric strong{font-size:1.55rem}
+#report .report-charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}
+#report .report-charts .card{min-width:0;margin:0}
+#report .chart svg{display:block;width:100%;height:auto}
+#report .heatmap-card{margin:0 0 16px}
+.heatmap-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.heatmap-heading h2{margin:0}
+.heatmap-switch{display:flex;gap:6px}
+.heatmap-switch button{min-height:40px;padding:5px 12px;font-size:.82rem}
+#report .heatmap{width:100%;overflow:auto;border:1px solid #365469;border-radius:9px;background:#102431}
+#report .heatmap svg{display:block;width:100%;height:auto}
+#report>.card{margin-bottom:15px}
+#report .table-wrap{max-height:520px;overflow:auto}
+#report .note{margin:15px 0}
+
+@media(max-width:820px){#setup .grid>.card>.fields{grid-template-columns:repeat(2,minmax(0,1fr))}#setup .grid>.card>.fields .wide{grid-column:1/-1}.library-positions{grid-template-columns:repeat(5,minmax(0,1fr))}#report .report-charts{grid-template-columns:1fr}}
+@media(max-width:620px){header{padding:18px 14px 5px}.shell{padding:9px 14px 34px}.top{display:flex;gap:10px;align-items:flex-start}.top h1{font-size:1.9rem}.top .muted{font-size:.82rem}.top>button{min-height:39px;padding:6px 9px;font-size:.78rem}.card{padding:15px}#setup-scene{height:54svh;min-height:300px}#setup-scene .view-controls button{font-size:.7rem;padding:5px 7px}.familiar-positions,.familiar-positions.trajectory{grid-template-columns:repeat(3,minmax(0,1fr))}.physics-fields{grid-template-columns:1fr}#test-scene{height:calc(100svh - 115px);min-height:560px}#test-scene .immersive-tools{top:8px;right:8px;max-width:calc(100% - 16px);padding:4px}#test-scene .response-panel{left:8px;right:8px;bottom:8px;width:auto;max-height:64%;padding:12px}.choice-grid button,.choice-grid.ring button,.choice-grid.court button,.choice-grid.trajectory button{min-height:44px;font-size:.76rem}.choice-grid.trajectory{grid-template-columns:repeat(5,minmax(0,1fr))}.choice-grid button small{display:none}.library-positions{grid-template-columns:repeat(4,minmax(0,1fr))}.library-list{grid-template-columns:1fr}#report .metric{padding:11px 8px}#report .metric strong{font-size:1.1rem}#report .metric span{font-size:.7rem}}
+@media(max-width:620px){.choice-grid.ring{width:min(100%,210px)}.choice-grid.ring button{width:42px;height:42px;min-height:42px;font-size:.7rem}.choice-grid.ring .ring-center{width:48px;height:48px;font-size:.7rem}.heatmap-heading{align-items:flex-start;flex-direction:column}.heatmap-switch{width:100%}.heatmap-switch button{flex:1}#report .heatmap svg{min-width:600px}}
+@media print{header,.steps,.view-controls,.immersive-tools,button{display:none!important}body{background:white;color:black}.card,.metric{background:white!important;color:black;border-color:#aaa!important}#report .table-wrap{max-height:none}}
