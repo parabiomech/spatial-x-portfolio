@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
-import {ATTACK_Z,BALL_HEIGHT,LISTENER_HEIGHT,targetWorldPosition} from './spatial.js';
+import {ATTACK_Z,BALL_HEIGHT,DEFENDER_Z,LISTENER_HEIGHT,targetWorldPosition} from './spatial.js';
 
 // The scan is the spatial reference. The only added scene object is the cue ball.
 export class CourtView {
@@ -14,20 +14,20 @@ export class CourtView {
     this.scene=new THREE.Scene();
     this.scene.background=new THREE.Color('#101820');
     this.camera=new THREE.PerspectiveCamera(68,1,.03,1000);
-    this.camera.position.set(0,LISTENER_HEIGHT,0);
+    this.camera.position.set(0,LISTENER_HEIGHT,DEFENDER_Z);
     this.camera.rotation.order='YXZ';
     this.controls=new OrbitControls(this.camera,this.renderer.domElement);
     this.controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN};
     this.controls.enableRotate=true;this.controls.enablePan=true;
     this.controls.screenSpacePanning=true;
-    this.controls.target.set(0,LISTENER_HEIGHT,5);
+    this.controls.target.set(0,LISTENER_HEIGHT,DEFENDER_Z+5);
     this.controls.enableDamping=true;
     this.controls.minDistance=.3; this.controls.maxDistance=90;
     this.scene.add(new THREE.HemisphereLight(0xffffff,0x666666,2));
     this.spark=null; this.hall=null; this.splat=null;
     this.ball=new THREE.Group();this.ball.renderOrder=999;this.ball.visible=false;this.scene.add(this.ball);
     this.ballOverlay=document.createElement('div');this.ballOverlay.className='spatial-ball';this.ballOverlay.hidden=true;this.ballOverlay.setAttribute('aria-hidden','true');host.append(this.ballOverlay);
-    this.ball.add(new THREE.Mesh(new THREE.SphereGeometry(.28,24,18),new THREE.MeshBasicMaterial({color:0x1475ed,depthTest:false,depthWrite:false})));
+    this.ball.add(new THREE.Mesh(new THREE.SphereGeometry(.28,24,18),new THREE.MeshBasicMaterial({color:0x1475ed,depthTest:true,depthWrite:true})));
     this.ring=new THREE.Mesh(new THREE.RingGeometry(.24,.34,48),new THREE.MeshBasicMaterial({color:0x15c9ff,transparent:true,opacity:0,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
     this.ring.rotation.x=-Math.PI/2;this.ring.renderOrder=998;this.scene.add(this.ring);
     this.loadBall();
@@ -40,11 +40,13 @@ export class CourtView {
     this.animate=this.animate.bind(this);this.animate();
     this.loadScan();
   }
-  resize(){const r=this.host.getBoundingClientRect();if(!r.width||!r.height)return;this.renderer.setSize(r.width,r.height,false);this.camera.aspect=r.width/r.height;this.camera.updateProjectionMatrix();}
+  resize(){const r=this.host.getBoundingClientRect();if(!r.width||!r.height)return;this.renderer.setSize(r.width,r.height,false);this.camera.aspect=r.width/r.height;this.camera.updateProjectionMatrix();if(this.dataset==='ring'||this.dataset==='ring8')this.birdView();}
   attach(host){if(!host)return;this.observer.unobserve(this.host);this.host=host;host.append(this.renderer.domElement,this.ballOverlay);this.observer.observe(host);this.resize();}
-  overview(){this.listenerMode=false;this.controls.enableRotate=true;this.camera.fov=75;this.camera.updateProjectionMatrix();this.camera.up.set(0,0,-1);this.camera.position.set(0,13,-2);this.controls.target.set(0,0,-2);this.controls.update();}
-  listenerView(){this.listenerMode=true;this.controls.enableRotate=false;this.listenerYaw=Math.PI;this.camera.fov=68;this.camera.updateProjectionMatrix();this.camera.up.set(0,1,0);this.camera.position.set(0,LISTENER_HEIGHT,0);this.controls.target.set(0,LISTENER_HEIGHT,5);this.controls.update();}
-  async loadBall(){try{const texture=new THREE.TextureLoader().load('./assets/ball/ballO6.jpg');texture.colorSpace=THREE.SRGBColorSpace;const normal=new THREE.TextureLoader().load('./assets/ball/ballO6_normal.jpg');const model=await new FBXLoader().loadAsync('./assets/ball/ballO6.fbx');const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),scale=.56/Math.max(size.x,size.y,size.z);model.position.sub(center).multiplyScalar(scale);model.scale.setScalar(scale);model.traverse(child=>{if(child.isMesh){child.material=new THREE.MeshStandardMaterial({map:texture,normalMap:normal,roughness:.78,depthTest:false,depthWrite:false});child.renderOrder=999;}});this.ball.clear();this.ball.add(model);}catch(e){console.warn('FBX ball fallback',e);}}
+  overview(){this.listenerMode=false;this.controls.enableRotate=true;this.camera.fov=75;this.camera.updateProjectionMatrix();this.camera.up.set(0,1,0);this.camera.position.set(0,13,DEFENDER_Z-1);this.controls.target.set(0,0,DEFENDER_Z);this.controls.update();}
+  birdView(){this.listenerMode=false;this.controls.enableRotate=false;this.camera.fov=68;this.camera.updateProjectionMatrix();this.camera.up.set(0,1,0);const aspect=this.camera.aspect||1;const height=Math.max(10,4.2/(Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*aspect));this.camera.position.set(0,height,DEFENDER_Z-.5);this.controls.target.set(0,0,DEFENDER_Z);this.controls.update();}
+  listenerView(){this.listenerMode=true;this.controls.enableRotate=false;this.listenerYaw=Math.PI;this.camera.fov=68;this.camera.updateProjectionMatrix();this.camera.up.set(0,1,0);this.camera.position.set(0,LISTENER_HEIGHT,DEFENDER_Z);this.controls.target.set(0,LISTENER_HEIGHT,DEFENDER_Z+5);this.controls.update();}
+  taskView(){if(this.dataset==='ring'||this.dataset==='ring8')this.birdView();else this.listenerView();}
+  async loadBall(){try{const texture=new THREE.TextureLoader().load('./assets/ball/ballO6.jpg');texture.colorSpace=THREE.SRGBColorSpace;const normal=new THREE.TextureLoader().load('./assets/ball/ballO6_normal.jpg');const model=await new FBXLoader().loadAsync('./assets/ball/ballO6.fbx');const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),scale=.56/Math.max(size.x,size.y,size.z);model.position.sub(center).multiplyScalar(scale);model.scale.setScalar(scale);model.traverse(child=>{if(child.isMesh){child.material=new THREE.MeshStandardMaterial({map:texture,normalMap:normal,roughness:.78,depthTest:true,depthWrite:true});child.renderOrder=999;}});this.ball.clear();this.ball.add(model);}catch(e){console.warn('FBX ball fallback',e);}}
   async loadScan(){
     try {
       const {SparkRenderer,SplatMesh}=await import('./vendor/spark.module.js');
@@ -64,7 +66,7 @@ export class CourtView {
       console.error('SOG load failed',e);
     }
   }
-  setDataset(dataset,targets=[]){this.dataset=dataset;this.targets=targets;this.hideTarget();}
+  setDataset(dataset,targets=[]){this.dataset=dataset;this.targets=targets;this.hideTarget();this.taskView();}
   hideTarget(){this.ball.visible=false;this.ballOverlay.hidden=true;this.bounceStart=null;this.ring.material.opacity=0;this.trajectory=null;}
   reveal(index,kind='impact',technique='F',duration=2,physics={}){
     const t=this.targets?.find(x=>x.index===index);if(!t)return;
