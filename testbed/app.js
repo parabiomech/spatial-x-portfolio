@@ -1,6 +1,6 @@
 import {ringLabel,makePlan,score,csv,mean,median} from './core.js';
-import {chartSvg as graphSvg} from './charts.js';
-import {heatmapSvg} from './heatmap.js?v=43';
+import {chartSvg as graphSvg} from './charts.js?v=47';
+import {heatmapSvg} from './heatmap.js?v=47';
 const visualStyle=document.createElement('link');visualStyle.rel='stylesheet';visualStyle.href='./visuals.css?v=41';document.head.append(visualStyle);
 const $=id=>document.getElementById(id),round=n=>Math.round(n*100)/100;
 let bank,view,ctx,source,checkNodes=[],phase='setup',session,index=0,stageIndex=0,selected=null,selectedTechnique=null,firstInput=null,firstChoice=null,playInfo=null,run=0,timer,pausedFrom,libraryTarget=null;

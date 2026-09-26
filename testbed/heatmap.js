@@ -9,13 +9,13 @@ function fieldImage(points,dataset){
   if(!points.length)return '';
   const canvas=document.createElement('canvas');canvas.width=450;canvas.height=320;
   const context=canvas.getContext('2d'),image=context.createImageData(canvas.width,canvas.height),pixels=image.data;
-  const ring=dataset==='ring'||dataset==='ring8',sx=ring?112:dataset==='court'?118:92,sy=ring?112:dataset==='court'?103:82;
+  const ring=dataset==='ring'||dataset==='ring8',sigma=ring?42:dataset==='court'?36:30,sx=sigma,sy=sigma;
   const base=[28,68,92];
   for(let py=0;py<canvas.height;py++)for(let px=0;px<canvas.width;px++){
     const x=px*2+1,y=py*2+1,inside=ring?(x-450)**2+(y-318)**2<=208**2:x>=220&&x<=680&&y>=91&&y<=547;
     if(!inside)continue;
     let total=0,weighted=0;
-    for(const point of points){const dx=(x-point.x)/sx,dy=(y-point.y)/sy,w=Math.exp(-.5*(dx*dx+dy*dy));total+=w;weighted+=w*point.value;}
+    for(const point of points){const dx=(x-point.x)/sx,dy=(y-point.y)/sy,distance=dx*dx+dy*dy,w=distance>9?0:Math.exp(-.5*distance);total+=w;weighted+=w*point.value;}
     const coverage=1-Math.exp(-total/.6),mapped=color(total?weighted/total:0),offset=(py*canvas.width+px)*4;
     for(let channel=0;channel<3;channel++)pixels[offset+channel]=Math.round(base[channel]*(1-coverage)+mapped[channel]*coverage);
     pixels[offset+3]=225;
