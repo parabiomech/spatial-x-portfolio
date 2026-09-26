@@ -3,7 +3,7 @@
 // Moving six labelled metres back therefore shifts the scene by 8 * 6 / 9.
 // +Z points toward the attacking goal. Audio and answer labels are unchanged.
 export const LISTENER_HEIGHT=1.6;
-export const BALL_HEIGHT=1.25;
+export const BALL_HEIGHT=1.0;
 const COURT_SPAN=8;
 export const DEFENDER_Z=-6*COURT_SPAN/9;
 export const ATTACK_Z=DEFENDER_Z+COURT_SPAN;
