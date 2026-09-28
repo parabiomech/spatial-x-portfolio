@@ -11,23 +11,12 @@ function show(page){for(const id of ['setup','test','report','library'])$(id).hi
 function visualPhysics(){return{speed:Number($('throw-speed')?.value)||1,angle:Number($('throw-angle')?.value)||12,height:Number($('throw-height')?.value)||.6};}
 function targets(dataset){return bank?.targets[dataset]||[];}
 function targetLabel(dataset,id){return targets(dataset).find(t=>t.index===id)?.label||String(id);}
-function settings(){return{version:'0.6.0',participant:$('participant').value.trim()||'anonymous',experienceYears:$('experience').value===''?null:Number($('experience').value),dataset:$('dataset').value,sound:$('sound').value,mode:$('mode').value,inputMode:$('input-mode').value,repeats:Number($('repeats').value),leadMs:3000,length:'full',seed:planSeed,visualPhysics:{speed:Number($('throw-speed').value),angle:Number($('throw-angle').value),height:Number($('throw-height').value)},gainDb:$('dataset').value==='trajectory'||$('sound').value==='pinknoise'?0:5,audioMode:'recorded stereo unchanged; pilot pink noise uses browser HRTF',responseMode:'first input, first valid selection, final confirmation; estimated scheduled audio onset/offset'};}
+function settings(){return{version:'0.6.0',participant:$('participant').value.trim()||'anonymous',experienceYears:$('experience').value===''?null:Number($('experience').value),dataset:$('dataset').value,sound:$('sound').value,mode:$('mode').value,inputMode:$('input-mode').value,repeats:Number($('repeats').value),leadMs:3000,length:'full',seed:planSeed,visualPhysics:{speed:Number($('throw-speed').value),angle:Number($('throw-angle').value),height:Number($('throw-height').value)},gainDb:$('dataset').value==='trajectory'||$('sound').value==='pinknoise'?0:5,audioMode:'recorded stereo WAVs share +12 dB playback gain; pink noise uses reduced browser HRTF',responseMode:'first input, first valid selection, final confirmation; estimated scheduled audio onset/offset'};}
 function update(){if(!bank)return;const set=$('dataset').value,kinds=new Set(bank.clips.filter(c=>c.dataset===set&&!c.reference).map(c=>c.kind));for(const option of $('sound').options)option.disabled=option.value==='both'?kinds.size<2:!kinds.has(option.value);if($('sound').selectedOptions[0].disabled)$('sound').value=kinds.has('impact')?'impact':([...kinds][0]||'impact');const quick=$('stimulus-shortcuts');if(quick){quick.hidden=set==='trajectory';quick.replaceChildren();for(const [v,label] of [['pinknoise','핑크노이즈'],['impact','임팩트'],['bell','방울소리'],['shake','공 흔들기'],['both','모두']]){const b=document.createElement('button'),option=[...$('sound').options].find(o=>o.value===v);b.type='button';b.textContent=label;b.disabled=!option||option.disabled;b.setAttribute('aria-pressed',String($('sound').value===v));b.onclick=()=>{$('sound').value=v;update();};quick.append(b);}}$('input-mode').options[1].disabled=set!=='ring'&&set!=='ring8';if(set!=='ring'&&set!=='ring8')$('input-mode').value='buttons';const dynamic=set==='trajectory';$('repeat-field').hidden=dynamic;$('mode').options[0].textContent=dynamic?'연습 · 4투구 × 3단계 / 단계마다 판단':'연습 · 4회 / 정답 공개';$('input-mode').closest('label').hidden=dynamic;$('task-hint').textContent=dynamic?'연습은 같은 투구를 3단계로 듣습니다. 평가는 기술 × 코스별 1회, 차단 단계는 고르게 섞습니다.':set==='court'?'청취 위치 C0 · 상대편 9m 골대 방향': '정면 0° 기준 · 오른쪽으로 '+(set==='ring8'?45:30)+'°씩 선택';try{const c=settings(),plan=makePlan(bank.clips,c);$('count').textContent=c.dataset==='trajectory'?c.mode==='practice'?`${plan.length}시행 · 4투구 × 3단계 / 단계마다 응답`:`${plan.length}/15조합 · 기술 × 코스별 1회 / 없는 음원은 제외`:`${plan.length}회 · ${c.mode==='practice'?'짧은 연습 / 피드백 제공':'평가 / 조건별 '+c.repeats+'회 반복'} · ${c.dataset==='ring'?'12방향':c.dataset==='ring8'?'8방향 · 합성 예비 자극':c.dataset==='court'?'15지점':'3단계 시간차단'}`;$('start').disabled=!bank.ready;}catch(e){$('count').textContent=e.message;$('start').disabled=true;}view?.setDataset(set,targets(set));view?.taskView();}
 function audio(){if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('Web Audio를 지원하는 브라우저에서 열어 주세요.');ctx=new AC();ctx.addEventListener('statechange',()=>{if(ctx.state!=='running'&&['loading','waiting','playing','answer'].includes(phase))pause('오디오 중단으로 현재 재생을 무효화했습니다.');});}return ctx;}
-// Equalize decoded stimuli without changing the archived WAV files or stereo channels.
-const clipGains=new Map();
-function stimulusGain(clip,b){
-  if(clip.kind==='pinknoise')return .18;
-  if(clipGains.has(clip.id))return clipGains.get(clip.id);
-  let peak=0;
-  for(let channel=0;channel<b.numberOfChannels;channel++){
-    const samples=b.getChannelData(channel);
-    for(let i=0;i<samples.length;i++)peak=Math.max(peak,Math.abs(samples[i]));
-  }
-  const gain=Math.min(24,.25/Math.max(peak,.001));
-  clipGains.set(clip.id,gain);
-  return gain;
-}
+// Preserve relative levels between recordings: one fixed playback gain for all WAVs.
+const RECORDED_GAIN_DB=12,PINK_GAIN=.18;
+function stimulusGain(clip){return clip.kind==='pinknoise'?PINK_GAIN:10**(RECORDED_GAIN_DB/20);}
 function stop(){run++;clearTimeout(timer);if(source){source.onended=null;try{source.stop();}catch{}source.disconnect();source=null;}for(const n of checkNodes){try{n.disconnect();}catch{}}checkNodes=[];}
 async function buffer(clip){if(cache.has(clip.id))return cache.get(clip.id);if(clip.kind==='pinknoise'){const ac=audio(),b=ac.createBuffer(1,Math.round(ac.sampleRate*1.2),ac.sampleRate),v=b.getChannelData(0);let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;for(let i=0;i<v.length;i++){const w=Math.random()*2-1;b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;v[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.08;b6=w*.115926;}cache.set(clip.id,b);return b;}const res=await fetch(clip.url);if(!res.ok)throw Error('음원 파일을 불러오지 못했습니다: '+clip.id);const b=await audio().decodeAudioData(await res.arrayBuffer());if(b.numberOfChannels!==2)throw Error('현장 음원이 스테레오가 아닙니다.');if(cache.size>8)cache.delete(cache.keys().next().value);cache.set(clip.id,b);return b;}
 async function channel(side){try{stop();const token=run,ac=audio();await ac.resume();if(token!==run)return;const b=ac.createBuffer(1,ac.sampleRate*.35,ac.sampleRate),v=b.getChannelData(0);for(let i=0;i<v.length;i++)v[i]=(Math.random()*2-1)*.03*Math.min(1,i/480,(v.length-i)/480);source=ac.createBufferSource();source.buffer=b;const pan=ac.createStereoPanner();pan.pan.value=side;source.connect(pan).connect(ac.destination);checkNodes=[pan];source.start();say((side<0?'왼쪽':'오른쪽')+' 확인음을 재생했습니다.','setup-status');}catch(e){say(e.message,'setup-status');}}
@@ -61,10 +50,10 @@ async function play(){
       const target=targets(c.dataset).find(t=>t.index===clip.targetIndex),angle=(target?.angleClockwiseDeg??0)*Math.PI/180;
       panner.positionX.value=c.dataset==='court'?(target?.x||0)/4.2*2.4:2.4*Math.sin(angle);
       panner.positionY.value=0;panner.positionZ.value=c.dataset==='court'?-2-(target?.row||0)/9*2.4:-2.4*Math.cos(angle);
-      const gain=ac.createGain();gain.gain.value=stimulusGain(clip,b);
+      const gain=ac.createGain();gain.gain.value=stimulusGain(clip);
       source.connect(panner).connect(gain).connect(ac.destination);checkNodes=[panner,gain];
-    }else{const gain=ac.createGain();gain.gain.value=stimulusGain(clip,b);source.connect(gain).connect(ac.destination);checkNodes=[gain];}
-    playInfo.outputGain=stimulusGain(clip,b);
+    }else{const gain=ac.createGain();gain.gain.value=stimulusGain(clip);source.connect(gain).connect(ac.destination);checkNodes=[gain];}
+    playInfo.outputGain=stimulusGain(clip);
     if(dynamic){stageIndex=stage-1;$('cut-stages').querySelectorAll('[data-cut-step]').forEach((button,i)=>button.setAttribute('aria-current',String(i===stage-1)));$('cue-note').textContent=stage+'/3까지 재생 중';}
     source.onended=()=>{if(token!==run)return;source?.disconnect();source=null;playInfo.offsetPerfMs=performance.now();phase='answer';$('play').hidden=true;$('cue').textContent=dynamic?'공이 어느 구역으로 향했나요?':'어디에서 들렸나요?';$('cue-note').textContent='선택한 뒤 응답을 확정하세요.';renderAnswers();$('response').hidden=false;$('replay').hidden=c.mode!=='practice';$('cue').focus();say('소리가 끝났습니다. 응답을 선택해 주세요.');};
     source.start(start,offset,duration);
@@ -131,7 +120,7 @@ function finish(early){
     const values=[r.trial,...(c.dataset==='trajectory'?[r.stageNumber+'/3']:[]),c.dataset==='trajectory'?r.technique:r.targetLabel,c.dataset==='trajectory'?r.targetLabel:r.kind==='impact'?'임팩트':r.kind==='pinknoise'?'핑크노이즈':'흔들기',c.dataset==='trajectory'?(r.techniqueResponse||'—')+' · '+r.responseLabel:r.responseLabel,r.correct?'정답':'오답',Math.round(r.firstChoiceFromOffsetMs)+' ms'];
     for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td);}body.append(tr);
   }table.append(body);$('table').replaceChildren(table);
-  $('timing-note').textContent='반응시간은 음원 종료부터 첫 선택까지의 브라우저 추정치입니다. 투구 음원은 각 파일의 전체 길이를 기준으로 1/3·2/3·전체까지 누적 제시합니다. 연습은 단계마다 응답하고 평가는 기술 × 코스별 음원 하나와 차단 단계 하나를 고르게 섞습니다. 없는 조합은 측정하지 않습니다. 8방향 임팩트·흔들기와 핑크노이즈는 합성 예비 자극입니다. 음원별 재생 음량을 보정하며 출력 지연은 교정되지 않았습니다.';
+  $('timing-note').textContent='반응시간은 음원 종료부터 첫 선택까지의 브라우저 추정치입니다. 투구 음원은 각 파일의 전체 길이를 기준으로 1/3·2/3·전체까지 누적 제시합니다. 연습은 단계마다 응답하고 평가는 기술 × 코스별 음원 하나와 차단 단계 하나를 고르게 섞습니다. 없는 조합은 측정하지 않습니다. 8방향 임팩트·흔들기와 핑크노이즈는 합성 예비 자극입니다. 현장 녹음은 모두 같은 +12 dB로 재생하며 출력 지연은 교정되지 않았습니다.';
   $('report-title').focus();
 }
 function save(content,type,ext){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download='spatial-x-'+session.id.replace(/[:.]/g,'-')+'.'+ext;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);session.exported=true;say('저장을 요청했습니다. 파일이 내려받아졌는지 확인하세요.','save-status');}
@@ -155,9 +144,9 @@ async function previewClip(clip){
       panner.positionX.value=clip.dataset==='court'?(target?.x||0)/4.2*2.4:2.4*Math.sin(angle);
       panner.positionY.value=0;
       panner.positionZ.value=clip.dataset==='court'?-2-(target?.row||0)/9*2.4:-2.4*Math.cos(angle);
-      const gain=ac.createGain();gain.gain.value=stimulusGain(clip,b);
+      const gain=ac.createGain();gain.gain.value=stimulusGain(clip);
       source.connect(panner).connect(gain).connect(ac.destination);checkNodes=[panner,gain];
-    }else{const gain=ac.createGain();gain.gain.value=stimulusGain(clip,b);source.connect(gain).connect(ac.destination);checkNodes=[gain];}
+    }else{const gain=ac.createGain();gain.gain.value=stimulusGain(clip);source.connect(gain).connect(ac.destination);checkNodes=[gain];}
     view?.setDataset(clip.dataset,targets(clip.dataset));view?.reveal(clip.targetIndex,clip.kind,clip.technique,clip.durationSeconds,visualPhysics());
     source.onended=()=>{if(token!==run)return;source?.disconnect();source=null;};
     source.start();
